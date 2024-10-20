@@ -1,142 +1,185 @@
 /*
-	stack
-	This question requires you to use a stack to achieve a bracket match
+    heap
+    This question requires you to implement a binary heap function
 */
 
-// I AM NOT DONE
-#[derive(Debug)]
-struct Stack<T> {
-	size: usize,
-	data: Vec<T>,
-}
-impl<T> Stack<T> {
-	fn new() -> Self {
-		Self {
-			size: 0,
-			data: Vec::new(),
-		}
-	}
-	fn is_empty(&self) -> bool {
-		0 == self.size
-	}
-	fn len(&self) -> usize {
-		self.size
-	}
-	fn clear(&mut self) {
-		self.size = 0;
-		self.data.clear();
-	}
-	fn push(&mut self, val: T) {
-		self.data.push(val);
-		self.size += 1;
-	}
-	fn pop(&mut self) -> Option<T> {
-		// TODO
-		None
-	}
-	fn peek(&self) -> Option<&T> {
-		if 0 == self.size {
-			return None;
-		}
-		self.data.get(self.size - 1)
-	}
-	fn peek_mut(&mut self) -> Option<&mut T> {
-		if 0 == self.size {
-			return None;
-		}
-		self.data.get_mut(self.size - 1)
-	}
-	fn into_iter(self) -> IntoIter<T> {
-		IntoIter(self)
-	}
-	fn iter(&self) -> Iter<T> {
-		let mut iterator = Iter { 
-			stack: Vec::new() 
-		};
-		for item in self.data.iter() {
-			iterator.stack.push(item);
-		}
-		iterator
-	}
-	fn iter_mut(&mut self) -> IterMut<T> {
-		let mut iterator = IterMut { 
-			stack: Vec::new() 
-		};
-		for item in self.data.iter_mut() {
-			iterator.stack.push(item);
-		}
-		iterator
-	}
-}
-struct IntoIter<T>(Stack<T>);
-impl<T: Clone> Iterator for IntoIter<T> {
-	type Item = T;
-	fn next(&mut self) -> Option<Self::Item> {
-		if !self.0.is_empty() {
-			self.0.size -= 1;self.0.data.pop()
-		} 
-		else {
-			None
-		}
-	}
-}
-struct Iter<'a, T: 'a> {
-	stack: Vec<&'a T>,
-}
-impl<'a, T> Iterator for Iter<'a, T> {
-	type Item = &'a T;
-	fn next(&mut self) -> Option<Self::Item> {
-		self.stack.pop()
-	}
-}
-struct IterMut<'a, T: 'a> {
-	stack: Vec<&'a mut T>,
-}
-impl<'a, T> Iterator for IterMut<'a, T> {
-	type Item = &'a mut T;
-	fn next(&mut self) -> Option<Self::Item> {
-		self.stack.pop()
-	}
+use std::cmp::Ord;
+use std::default::Default;
+
+pub struct Heap<T>
+where
+    T: Default,
+{
+    count: usize,
+    items: Vec<T>,
+    comparator: fn(&T, &T) -> bool,
 }
 
-fn bracket_match(bracket: &str) -> bool
+impl<T> Heap<T>
+where
+    T: Default,
 {
-	//TODO
-	true
+    pub fn new(comparator: fn(&T, &T) -> bool) -> Self {
+        Self {
+            count: 0,
+            items: vec![T::default()],
+            comparator,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.count
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn add(&mut self, value: T) {
+        self.count = self.count + 1;
+        self.items.push(value);
+
+        let mut idx = self.count;
+        while idx > 1 && (self.comparator)(&self.items[idx], &self.items[self.parent_idx(idx)]) {
+            let parent_idx = self.parent_idx(idx);
+            self.items.swap(idx, parent_idx);
+            idx = parent_idx;
+        }
+    }
+
+    fn parent_idx(&self, idx: usize) -> usize {
+        idx / 2
+    }
+
+    fn children_present(&self, idx: usize) -> bool {
+        self.left_child_idx(idx) <= self.count
+    }
+
+    fn left_child_idx(&self, idx: usize) -> usize {
+        idx * 2
+    }
+
+    fn right_child_idx(&self, idx: usize) -> usize {
+        self.left_child_idx(idx) + 1
+    }
+
+    fn smallest_child_idx(&self, idx: usize) -> usize {
+        let left_child_idx = self.left_child_idx(idx);
+        let right_child_idx = self.right_child_idx(idx);
+
+        if right_child_idx <= self.count
+            && (self.comparator)(&self.items[right_child_idx], &self.items[left_child_idx])
+        {
+            right_child_idx
+        } else {
+            left_child_idx
+        }
+    }
+}
+
+impl<T> Heap<T>
+where
+    T: Default + Ord,
+{
+    /// Create a new MinHeap
+    pub fn new_min() -> Self {
+        Self::new(|a, b| a < b)
+    }
+
+    /// Create a new MaxHeap
+    pub fn new_max() -> Self {
+        Self::new(|a, b| a > b)
+    }
+}
+
+impl<T> Iterator for Heap<T>
+where
+    T: Default,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let root = self.items.swap_remove(1);
+        self.count = self.count - 1;
+
+        let mut idx = 1;
+        while self.children_present(idx) {
+            let smallest_child_idx = self.smallest_child_idx(idx);
+            if (self.comparator)(&self.items[idx], &self.items[smallest_child_idx]) {
+                break;
+            }
+            self.items.swap(idx, smallest_child_idx);
+            idx = smallest_child_idx;
+        }
+
+        Some(root)
+    }
+}
+
+pub struct MinHeap;
+
+impl MinHeap {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new<T>() -> Heap<T>
+    where
+        T: Default + Ord,
+    {
+        Heap::new(|a, b| a < b)
+    }
+}
+
+pub struct MaxHeap;
+
+impl MaxHeap {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new<T>() -> Heap<T>
+    where
+        T: Default + Ord,
+    {
+        Heap::new(|a, b| a > b)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	
-	#[test]
-	fn bracket_matching_1(){
-		let s = "(2+3){func}[abc]";
-		assert_eq!(bracket_match(s),true);
-	}
-	#[test]
-	fn bracket_matching_2(){
-		let s = "(2+3)*(3-1";
-		assert_eq!(bracket_match(s),false);
-	}
-	#[test]
-	fn bracket_matching_3(){
-		let s = "{{([])}}";
-		assert_eq!(bracket_match(s),true);
-	}
-	#[test]
-	fn bracket_matching_4(){
-		let s = "{{(}[)]}";
-		assert_eq!(bracket_match(s),false);
-	}
-	#[test]
-	fn bracket_matching_5(){
-		let s = "[[[]]]]]]]]]";
-		assert_eq!(bracket_match(s),false);
-	}
-	#[test]
-	fn bracket_matching_6(){
-		let s = "";
-		assert_eq!(bracket_match(s),true);
-	}
+    use super::*;
+    #[test]
+    fn test_empty_heap() {
+        let mut heap = MaxHeap::new::<i32>();
+        assert_eq!(heap.next(), None);
+    }
+
+    #[test]
+    fn test_min_heap() {
+        let mut heap = MinHeap::new();
+        heap.add(4);
+        heap.add(2);
+        heap.add(9);
+        heap.add(11);
+        assert_eq!(heap.len(), 4);
+        assert_eq!(heap.next(), Some(2));
+        assert_eq!(heap.next(), Some(4));
+        assert_eq!(heap.next(), Some(9));
+        heap.add(1);
+        assert_eq!(heap.next(), Some(1));
+    }
+
+    #[test]
+    fn test_max_heap() {
+        let mut heap = MaxHeap::new();
+        heap.add(4);
+        heap.add(2);
+        heap.add(9);
+        heap.add(11);
+        assert_eq!(heap.len(), 4);
+        assert_eq!(heap.next(), Some(11));
+        assert_eq!(heap.next(), Some(9));
+        assert_eq!(heap.next(), Some(4));
+        heap.add(1);
+        assert_eq!(heap.next(), Some(2));
+    }
 }

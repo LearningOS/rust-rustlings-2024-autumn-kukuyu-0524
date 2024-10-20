@@ -1,38 +1,128 @@
 /*
-	dfs
-	This problem requires you to implement a basic DFS traversal
+    stack
+    This question requires you to use a stack to achieve a bracket match
 */
 
-// I AM NOT DONE
-use std::collections::HashSet;
-
-struct Graph {
-    adj: Vec<Vec<usize>>, 
+#[derive(Debug)]
+struct Stack<T> {
+    size: usize,
+    data: Vec<T>,
+}
+impl<T> Stack<T> {
+    fn new() -> Self {
+        Self {
+            size: 0,
+            data: Vec::new(),
+        }
+    }
+    fn is_empty(&self) -> bool {
+        0 == self.size
+    }
+    fn len(&self) -> usize {
+        self.size
+    }
+    fn clear(&mut self) {
+        self.size = 0;
+        self.data.clear();
+    }
+    fn push(&mut self, val: T) {
+        self.data.push(val);
+        self.size += 1;
+    }
+    fn pop(&mut self) -> Option<T> {
+        if self.is_empty() {
+            return None;
+        }
+        self.size -= 1;
+        self.data.pop()
+    }
+    fn peek(&self) -> Option<&T> {
+        if 0 == self.size {
+            return None;
+        }
+        self.data.get(self.size - 1)
+    }
+    fn peek_mut(&mut self) -> Option<&mut T> {
+        if 0 == self.size {
+            return None;
+        }
+        self.data.get_mut(self.size - 1)
+    }
+    fn into_iter(self) -> IntoIter<T> {
+        IntoIter(self)
+    }
+    fn iter(&self) -> Iter<T> {
+        let mut iterator = Iter { stack: Vec::new() };
+        for item in self.data.iter() {
+            iterator.stack.push(item);
+        }
+        iterator
+    }
+    fn iter_mut(&mut self) -> IterMut<T> {
+        let mut iterator = IterMut { stack: Vec::new() };
+        for item in self.data.iter_mut() {
+            iterator.stack.push(item);
+        }
+        iterator
+    }
+}
+struct IntoIter<T>(Stack<T>);
+impl<T: Clone> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.0.is_empty() {
+            self.0.size -= 1;
+            self.0.data.pop()
+        } else {
+            None
+        }
+    }
+}
+struct Iter<'a, T: 'a> {
+    stack: Vec<&'a T>,
+}
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.stack.pop()
+    }
+}
+struct IterMut<'a, T: 'a> {
+    stack: Vec<&'a mut T>,
+}
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.stack.pop()
+    }
 }
 
-impl Graph {
-    fn new(n: usize) -> Self {
-        Graph {
-            adj: vec![vec![]; n],
+fn bracket_match(bracket: &str) -> bool {
+    let mut stack = Stack::new();
+
+    for ch in bracket.chars() {
+        match ch {
+            '(' | '[' | '{' => stack.push(ch),
+            ')' => {
+                if stack.is_empty() || stack.pop() != Some('(') {
+                    return false;
+                }
+            }
+            ']' => {
+                if stack.is_empty() || stack.pop() != Some('[') {
+                    return false;
+                }
+            }
+            '}' => {
+                if stack.is_empty() || stack.pop() != Some('{') {
+                    return false;
+                }
+            }
+            _ => {}
         }
     }
 
-    fn add_edge(&mut self, src: usize, dest: usize) {
-        self.adj[src].push(dest);
-        self.adj[dest].push(src); 
-    }
-
-    fn dfs_util(&self, v: usize, visited: &mut HashSet<usize>, visit_order: &mut Vec<usize>) {
-        //TODO
-    }
-
-    // Perform a depth-first search on the graph, return the order of visited nodes
-    fn dfs(&self, start: usize) -> Vec<usize> {
-        let mut visited = HashSet::new();
-        let mut visit_order = Vec::new(); 
-        self.dfs_util(start, &mut visited, &mut visit_order);
-        visit_order
-    }
+    stack.is_empty()
 }
 
 #[cfg(test)]
@@ -40,39 +130,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_dfs_simple() {
-        let mut graph = Graph::new(3);
-        graph.add_edge(0, 1);
-        graph.add_edge(1, 2);
-
-        let visit_order = graph.dfs(0);
-        assert_eq!(visit_order, vec![0, 1, 2]);
+    fn bracket_matching_1() {
+        let s = "(2+3){func}[abc]";
+        assert_eq!(bracket_match(s), true);
     }
-
     #[test]
-    fn test_dfs_with_cycle() {
-        let mut graph = Graph::new(4);
-        graph.add_edge(0, 1);
-        graph.add_edge(0, 2);
-        graph.add_edge(1, 2);
-        graph.add_edge(2, 3);
-        graph.add_edge(3, 3); 
-
-        let visit_order = graph.dfs(0);
-        assert_eq!(visit_order, vec![0, 1, 2, 3]);
+    fn bracket_matching_2() {
+        let s = "(2+3)*(3-1";
+        assert_eq!(bracket_match(s), false);
     }
-
     #[test]
-    fn test_dfs_disconnected_graph() {
-        let mut graph = Graph::new(5);
-        graph.add_edge(0, 1);
-        graph.add_edge(0, 2);
-        graph.add_edge(3, 4); 
-
-        let visit_order = graph.dfs(0);
-        assert_eq!(visit_order, vec![0, 1, 2]); 
-        let visit_order_disconnected = graph.dfs(3);
-        assert_eq!(visit_order_disconnected, vec![3, 4]); 
+    fn bracket_matching_3() {
+        let s = "{{([])}}";
+        assert_eq!(bracket_match(s), true);
+    }
+    #[test]
+    fn bracket_matching_4() {
+        let s = "{{(}[)]}";
+        assert_eq!(bracket_match(s), false);
+    }
+    #[test]
+    fn bracket_matching_5() {
+        let s = "[[[]]]]]]]]]";
+        assert_eq!(bracket_match(s), false);
+    }
+    #[test]
+    fn bracket_matching_6() {
+        let s = "";
+        assert_eq!(bracket_match(s), true);
     }
 }
-

@@ -1,126 +1,83 @@
 /*
-	binary_search tree
-	This problem requires you to implement a basic interface for a binary tree
+    dfs
+    This problem requires you to implement a basic DFS traversal
 */
 
-//I AM NOT DONE
-use std::cmp::Ordering;
-use std::fmt::Debug;
+use std::collections::HashSet;
 
-
-#[derive(Debug)]
-struct TreeNode<T>
-where
-    T: Ord,
-{
-    value: T,
-    left: Option<Box<TreeNode<T>>>,
-    right: Option<Box<TreeNode<T>>>,
+struct Graph {
+    adj: Vec<Vec<usize>>,
 }
 
-#[derive(Debug)]
-struct BinarySearchTree<T>
-where
-    T: Ord,
-{
-    root: Option<Box<TreeNode<T>>>,
-}
-
-impl<T> TreeNode<T>
-where
-    T: Ord,
-{
-    fn new(value: T) -> Self {
-        TreeNode {
-            value,
-            left: None,
-            right: None,
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            adj: vec![vec![]; n],
         }
     }
-}
 
-impl<T> BinarySearchTree<T>
-where
-    T: Ord,
-{
-
-    fn new() -> Self {
-        BinarySearchTree { root: None }
+    fn add_edge(&mut self, src: usize, dest: usize) {
+        self.adj[src].push(dest);
+        self.adj[dest].push(src);
     }
 
-    // Insert a value into the BST
-    fn insert(&mut self, value: T) {
-        //TODO
+    fn dfs_util(&self, v: usize, visited: &mut HashSet<usize>, visit_order: &mut Vec<usize>) {
+        visited.insert(v);
+        visit_order.push(v);
+
+        for &neighbor in &self.adj[v] {
+            if !visited.contains(&neighbor) {
+                self.dfs_util(neighbor, visited, visit_order);
+            }
+        }
     }
 
-    // Search for a value in the BST
-    fn search(&self, value: T) -> bool {
-        //TODO
-        true
-    }
-}
-
-impl<T> TreeNode<T>
-where
-    T: Ord,
-{
-    // Insert a node into the tree
-    fn insert(&mut self, value: T) {
-        //TODO
+    // Perform a depth-first search on the graph, return the order of visited nodes
+    fn dfs(&self, start: usize) -> Vec<usize> {
+        let mut visited = HashSet::new();
+        let mut visit_order = Vec::new();
+        self.dfs_util(start, &mut visited, &mut visit_order);
+        visit_order
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_insert_and_search() {
-        let mut bst = BinarySearchTree::new();
+    fn test_dfs_simple() {
+        let mut graph = Graph::new(3);
+        graph.add_edge(0, 1);
+        graph.add_edge(1, 2);
 
-        
-        assert_eq!(bst.search(1), false);
-
-        
-        bst.insert(5);
-        bst.insert(3);
-        bst.insert(7);
-        bst.insert(2);
-        bst.insert(4);
-
-        
-        assert_eq!(bst.search(5), true);
-        assert_eq!(bst.search(3), true);
-        assert_eq!(bst.search(7), true);
-        assert_eq!(bst.search(2), true);
-        assert_eq!(bst.search(4), true);
-
-        
-        assert_eq!(bst.search(1), false);
-        assert_eq!(bst.search(6), false);
+        let visit_order = graph.dfs(0);
+        assert_eq!(visit_order, vec![0, 1, 2]);
     }
 
     #[test]
-    fn test_insert_duplicate() {
-        let mut bst = BinarySearchTree::new();
+    fn test_dfs_with_cycle() {
+        let mut graph = Graph::new(4);
+        graph.add_edge(0, 1);
+        graph.add_edge(0, 2);
+        graph.add_edge(1, 2);
+        graph.add_edge(2, 3);
+        graph.add_edge(3, 3);
 
-        
-        bst.insert(1);
-        bst.insert(1);
-
-        
-        assert_eq!(bst.search(1), true);
-
-        
-        match bst.root {
-            Some(ref node) => {
-                assert!(node.left.is_none());
-                assert!(node.right.is_none());
-            },
-            None => panic!("Root should not be None after insertion"),
-        }
+        let visit_order = graph.dfs(0);
+        assert_eq!(visit_order, vec![0, 1, 2, 3]);
     }
-}    
 
+    #[test]
+    fn test_dfs_disconnected_graph() {
+        let mut graph = Graph::new(5);
+        graph.add_edge(0, 1);
+        graph.add_edge(0, 2);
+        graph.add_edge(3, 4);
 
+        let visit_order = graph.dfs(0);
+        assert_eq!(visit_order, vec![0, 1, 2]);
+        let visit_order_disconnected = graph.dfs(3);
+        assert_eq!(visit_order_disconnected, vec![3, 4]);
+    }
+}
