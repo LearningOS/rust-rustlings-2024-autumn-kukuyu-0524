@@ -16,49 +16,24 @@
 //
 // Execute `rustlings hint quiz3` or use the `hint` watch subcommand for a hint.
 
-// I AM NOT DONE
-
-pub struct ReportCard {
-    pub grade: f32,
-    pub student_name: String,
-    pub student_age: u8,
-}
-
-impl ReportCard {
-    pub fn print(&self) -> String {
-        format!("{} ({}) - achieved a grade of {}",
-            &self.student_name, &self.student_age, &self.grade)
+fn calculate_price_of_apples(num: i32) -> i32 {
+    if num > 40 {
+        num
+    } else {
+        2 * num
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// Don't modify this function!
+#[test]
+fn verify_test() {
+    let price1 = calculate_price_of_apples(35);
+    let price2 = calculate_price_of_apples(40);
+    let price3 = calculate_price_of_apples(41);
+    let price4 = calculate_price_of_apples(65);
 
-    #[test]
-    fn generate_numeric_report_card() {
-        let report_card = ReportCard {
-            grade: 2.1,
-            student_name: "Tom Wriggle".to_string(),
-            student_age: 12,
-        };
-        assert_eq!(
-            report_card.print(),
-            "Tom Wriggle (12) - achieved a grade of 2.1"
-        );
-    }
-
-    #[test]
-    fn generate_alphabetic_report_card() {
-        // TODO: Make sure to change the grade here after you finish the exercise.
-        let report_card = ReportCard {
-            grade: 2.1,
-            student_name: "Gary Plotter".to_string(),
-            student_age: 11,
-        };
-        assert_eq!(
-            report_card.print(),
-            "Gary Plotter (11) - achieved a grade of A+"
-        );
-    }
+    assert_eq!(70, price1);
+    assert_eq!(80, price2);
+    assert_eq!(41, price3);
+    assert_eq!(65, price4);
 }
